@@ -1,14 +1,25 @@
 import { useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
 
-import { Input } from "@/components/ui";
-import useDebounce from "@/hooks/useDebounce";
-import { GridPostList, Loader } from "@/components/shared";
-import { useGetPosts, useSearchPosts } from "@/lib/react-query/queries";
+import { Input } from "../../components/ui/input";
+import useDebounce from "../../hooks/useDebounce";
+import { GridPostList, Loader } from "../../components/shared";
+import { useGetPosts, useSearchPosts } from "../../lib/react-query/queries";
+
+// Define types for the posts
+import { Models } from "appwrite";
+
+export type Post = Models.Document & {
+  title: string;
+  content: string;
+  // Add other fields as necessary
+};
 
 export type SearchResultProps = {
   isSearchFetching: boolean;
-  searchedPosts: any;
+  searchedPosts: {
+    documents: Post[];
+  } | null;
 };
 
 const SearchResults = ({
@@ -30,7 +41,7 @@ const Explore = () => {
   const { ref, inView } = useInView();
   const { data: posts, fetchNextPage, hasNextPage } = useGetPosts();
 
-  const [searchValue, setSearchValue] = useState("");
+  const [searchValue, setSearchValue] = useState<string>("");
   const debouncedSearch = useDebounce(searchValue, 500);
   const { data: searchedPosts, isFetching: isSearchFetching } =
     useSearchPosts(debouncedSearch);
@@ -39,14 +50,15 @@ const Explore = () => {
     if (inView && !searchValue) {
       fetchNextPage();
     }
-  }, [inView, searchValue]);
+  }, [inView, searchValue, fetchNextPage]);
 
-  if (!posts)
+  if (!posts) {
     return (
       <div className="flex-center w-full h-full">
         <Loader />
       </div>
     );
+  }
 
   const shouldShowSearchResults = searchValue !== "";
   const shouldShowPosts =
@@ -69,10 +81,7 @@ const Explore = () => {
             placeholder="Search"
             className="explore-search"
             value={searchValue}
-            onChange={(e) => {
-              const { value } = e.target;
-              setSearchValue(value);
-            }}
+            onChange={(e) => setSearchValue(e.target.value)}
           />
         </div>
       </div>

@@ -1,17 +1,14 @@
 import { Models } from "appwrite";
-
-// import { useToast } from "@/components/ui/use-toast";
-import { Loader, PostCard, UserCard } from "@/components/shared";
-import { useGetRecentPosts, useGetUsers } from "@/lib/react-query/queries";
+import { Loader, PostCard, UserCard } from "../../components/shared/index";
+import { useGetRecentPosts, useGetUsers } from "../../lib/react-query/queries";
 
 const Home = () => {
-  // const { toast } = useToast();
-
   const {
     data: posts,
     isLoading: isPostLoading,
     isError: isErrorPosts,
   } = useGetRecentPosts();
+
   const {
     data: creators,
     isLoading: isUserLoading,
@@ -22,10 +19,14 @@ const Home = () => {
     return (
       <div className="flex flex-1">
         <div className="home-container">
-          <p className="body-medium text-light-1">Something bad happened</p>
+          <p className="body-medium text-light-1">
+            Something went wrong. Please try again later.
+          </p>
         </div>
         <div className="home-creators">
-          <p className="body-medium text-light-1">Something bad happened</p>
+          <p className="body-medium text-light-1">
+            Something went wrong. Please try again later.
+          </p>
         </div>
       </div>
     );
@@ -33,10 +34,11 @@ const Home = () => {
 
   return (
     <div className="flex flex-1">
+      {/* Home Feed Section */}
       <div className="home-container">
         <div className="home-posts">
           <h2 className="h3-bold md:h2-bold text-left w-full">Home Feed</h2>
-          {isPostLoading && !posts ? (
+          {isPostLoading ? (
             <Loader />
           ) : (
             <ul className="flex flex-col flex-1 gap-9 w-full ">
@@ -50,14 +52,15 @@ const Home = () => {
         </div>
       </div>
 
+      {/* Top Creators Section */}
       <div className="home-creators">
         <h3 className="h3-bold text-light-1">Top Creators</h3>
-        {isUserLoading && !creators ? (
+        {isUserLoading ? (
           <Loader />
         ) : (
           <ul className="grid 2xl:grid-cols-2 gap-6">
-            {creators?.documents.map((creator) => (
-              <li key={creator?.$id}>
+            {creators?.documents.map((creator: Models.Document) => (
+              <li key={creator.$id}>
                 <UserCard user={creator} />
               </li>
             ))}

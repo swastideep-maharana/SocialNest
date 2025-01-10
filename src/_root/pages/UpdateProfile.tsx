@@ -10,67 +10,101 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { useToast } from "@/components/ui/use-toast";
-import { Textarea, Input, Button } from "@/components/ui";
-import { ProfileUploader, Loader } from "@/components/shared";
+} from "../../components/ui/form";
+import { useToast } from "../../components/ui/use-toast";
+import { Button } from "../../components/ui";
+import { Input } from "../../components/ui/input";
+import { Textarea } from "../../components/ui/textarea";
+import ProfileUploader from "../../components/shared/ProfileUploader";
+import Loader from "../../components/shared/Loader";
 
-import { ProfileValidation } from "@/lib/validation";
-import { useUserContext } from "@/context/AuthContext";
-import { useGetUserById, useUpdateUser } from "@/lib/react-query/queries";
+import { ProfileValidation } from "../../lib/validation";
+import { useUserContext } from "../../context/AuthContext";
+import { useGetUserById, useUpdateUser } from "../../lib/react-query/queries";
 
 const UpdateProfile = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { id } = useParams();
   const { user, setUser } = useUserContext();
+
+  // Ensure user is defined before proceeding
   const form = useForm<z.infer<typeof ProfileValidation>>({
     resolver: zodResolver(ProfileValidation),
     defaultValues: {
       file: [],
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      bio: user.bio || "",
+      name: user?.name || "", // Fallback to empty string if user is undefined
+      username: user?.username || "",
+      email: user?.email || "",
+      bio: user?.bio || "",
     },
   });
 
-  // Queries
-  const { data: currentUser } = useGetUserById(id || "");
+  // Queries for fetching current user data and updating user
+  const {
+    data: currentUser,
+    isLoading,
+    isError,
+    error,
+  } = useGetUserById(id || "");
   const { mutateAsync: updateUser, isLoading: isLoadingUpdate } =
     useUpdateUser();
 
-  if (!currentUser)
+  // Handling loading and error states
+  if (isLoading) {
     return (
       <div className="flex-center w-full h-full">
         <Loader />
       </div>
     );
+  }
 
-  // Handler
+  if (isError) {
+    return (
+      <div className="flex-center w-full h-full">
+        <p className="text-red-500">
+          Failed to load user data.{" "}
+          {error?.message || "Please try again later."}
+        </p>
+      </div>
+    );
+  }
+
+  // Handler for updating the profile
   const handleUpdate = async (value: z.infer<typeof ProfileValidation>) => {
-    const updatedUser = await updateUser({
-      userId: currentUser.$id,
-      name: value.name,
-      bio: value.bio,
-      file: value.file,
-      imageUrl: currentUser.imageUrl,
-      imageId: currentUser.imageId,
-    });
+    try {
+      const updatedUser = await updateUser({
+        userId: currentUser.$id,
+        name: value.name,
+        bio: value.bio,
+        file: value.file,
+        imageUrl: currentUser.imageUrl,
+        imageId: currentUser.imageId,
+      });
 
-    if (!updatedUser) {
+      if (!updatedUser) {
+        throw new Error("Update failed");
+      }
+
+      toast({
+        title: `Profile updated successfully!`,
+        variant: "success",
+      });
+
+      setUser({
+        ...user,
+        name: updatedUser?.name,
+        bio: updatedUser?.bio,
+        imageUrl: updatedUser?.imageUrl,
+      });
+
+      navigate(`/profile/${id}`);
+    } catch (error) {
       toast({
         title: `Update user failed. Please try again.`,
+        variant: "destructive",
       });
     }
-
-    setUser({
-      ...user,
-      name: updatedUser?.name,
-      bio: updatedUser?.bio,
-      imageUrl: updatedUser?.imageUrl,
-    });
-    return navigate(`/profile/${id}`);
   };
 
   return (
@@ -100,7 +134,10 @@ const UpdateProfile = () => {
                   <FormControl>
                     <ProfileUploader
                       fieldChange={field.onChange}
-                      mediaUrl={currentUser.imageUrl}
+                      mediaUrl={
+                        currentUser.imageUrl ||
+                        "/assets/icons/profile-placeholder.svg"
+                      }
                     />
                   </FormControl>
                   <FormMessage className="shad-form_message" />
@@ -191,7 +228,7 @@ const UpdateProfile = () => {
                 disabled={isLoadingUpdate}
               >
                 {isLoadingUpdate && <Loader />}
-                Update Profile
+                {isLoadingUpdate ? "Updating..." : "Update Profile"}
               </Button>
             </div>
           </form>
