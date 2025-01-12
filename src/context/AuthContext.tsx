@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { IUser } from "@/types";
 import { getCurrentUser } from "@/lib/appwrite/api";
 
+// Define initial state for the user and authentication state
 export const INITIAL_USER = {
   id: "",
   name: "",
@@ -19,7 +20,7 @@ const INITIAL_STATE = {
   isAuthenticated: false,
   setUser: () => {},
   setIsAuthenticated: () => {},
-  checkAuthUser: async () => false as boolean,
+  checkAuthUser: async () => false,
 };
 
 type IContextType = {
@@ -39,10 +40,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Check if the user is authenticated
   const checkAuthUser = async () => {
     setIsLoading(true);
     try {
-      const currentAccount = await getCurrentUser();
+      const currentAccount = await getCurrentUser(); // Replace with actual logic for checking the user
       if (currentAccount) {
         setUser({
           id: currentAccount.$id,
@@ -57,28 +59,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return true;
       }
 
+      setIsAuthenticated(false);
       return false;
     } catch (error) {
-      console.error(error);
+      console.error("Error checking authenticated user", error);
+      setIsAuthenticated(false);
       return false;
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Effect to check authentication and navigate if necessary
   useEffect(() => {
     const cookieFallback = localStorage.getItem("cookieFallback");
-    if (
-      cookieFallback === "[]" ||
-      cookieFallback === null ||
-      cookieFallback === undefined
-    ) {
+    if (!cookieFallback || cookieFallback === "[]") {
       navigate("/sign-in");
+    } else {
+      checkAuthUser(); // Verify authentication state
     }
+  }, [navigate]);
 
-    checkAuthUser();
-  }, []);
-
+  // Context provider value
   const value = {
     user,
     setUser,
