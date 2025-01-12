@@ -1,3 +1,4 @@
+
 const Loader = () => (
   <div className="flex-center w-full">
     <img
